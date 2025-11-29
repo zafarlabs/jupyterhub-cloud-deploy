@@ -1,0 +1,30 @@
+# Environment files with secrets
+.env
+*.env
+!.env.template
+
+# Kubernetes config backups
+kubeconfig*
+
+# Helm values with secrets
+*-secrets.yaml
+values-secret*.yaml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp

@@ -1,0 +1,205 @@
+# ===================================================================
+# Production JupyterHub Configuration for Azure AKS
+# With domain and HTTPS support
+# ===================================================================
+
+# -------------------------------------------------------------------
+# Hub Configuration
+# -------------------------------------------------------------------
+hub:
+  config:
+    JupyterHub:
+      authenticator_class: nativeauthenticator.NativeAuthenticator
+      admin_access: true
+
+    Authenticator:
+      admin_users:
+        - admin
+      allowed_users:
+        - admin
+        - user01
+        - user02
+        - user03
+
+    NativeAuthenticator:
+      open_signup: false
+      minimum_password_length: 12
+      check_common_password: true
+      allowed_failed_logins: 3
+      seconds_before_next_try: 600
+
+  # Database persistence
+  db:
+    type: sqlite-pvc
+    pvc:
+      storage: 10Gi
+      storageClassName: managed-csi
+
+  # Schedule Hub on dedicated pool
+  nodeSelector:
+    agentpool: hubpool
+
+  # Resource limits for hub
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# -------------------------------------------------------------------
+# Proxy Configuration
+# -------------------------------------------------------------------
+proxy:
+  # Use NGINX ingress instead of LoadBalancer
+  service:
+    type: ClusterIP
+
+  # Schedule proxy on hub pool
+  chp:
+    nodeSelector:
+      agentpool: hubpool
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  # HTTPS redirect
+  https:
+    enabled: true
+    type: offload
+
+# -------------------------------------------------------------------
+# Ingress Configuration
+# -------------------------------------------------------------------
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "64m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+  hosts:
+    - jupyter.example.com  # Will be overridden by setup.sh
+
+  tls:
+    - secretName: jupyterhub-tls
+      hosts:
+        - jupyter.example.com  # Will be overridden by setup.sh
+
+# -------------------------------------------------------------------
+# Single User Server Configuration
+# -------------------------------------------------------------------
+singleuser:
+  # Default image
+  image:
+    name: jupyter/scipy-notebook
+    tag: "2024-11-25"
+
+  # Schedule user pods on dedicated pool
+  nodeSelector:
+    agentpool: userpool
+
+  # Persistent storage per user
+  storage:
+    type: dynamic
+    capacity: 50Gi
+    homeMountPath: /home/jovyan
+    dynamic:
+      storageClass: managed-csi
+
+  # Resource guarantees per user
+  cpu:
+    limit: 4
+    guarantee: 1
+
+  memory:
+    limit: 8G
+    guarantee: 2G
+
+  # Extra environment variables
+  extraEnv:
+    JUPYTER_ENABLE_LAB: "yes"
+
+  # Lifecycle hooks
+  lifecycleHooks:
+    postStart:
+      exec:
+        command:
+          - "sh"
+          - "-c"
+          - >
+            mkdir -p /home/jovyan/notebooks &&
+            echo "Welcome to JupyterHub!" > /home/jovyan/README.txt
+
+  # Default URL for users
+  defaultUrl: "/lab"
+
+  # Allow users to select profile
+  profileList: []
+
+# -------------------------------------------------------------------
+# Scheduling Configuration
+# -------------------------------------------------------------------
+scheduling:
+  userScheduler:
+    enabled: true
+    replicas: 2
+    nodeSelector:
+      agentpool: hubpool
+
+  podPriority:
+    enabled: true
+
+  userPlaceholder:
+    enabled: true
+    replicas: 0
+
+# -------------------------------------------------------------------
+# Culling Configuration (Cost Optimization)
+# -------------------------------------------------------------------
+cull:
+  enabled: true
+  timeout: 3600        # Cull after 1 hour of inactivity
+  every: 600           # Check every 10 minutes
+  maxAge: 0            # No max age limit
+  users: false         # Don't cull users, only servers
+  removeNamedServers: true
+  concurrency: 10
+
+# -------------------------------------------------------------------
+# Pre-puller Configuration
+# -------------------------------------------------------------------
+prePuller:
+  hook:
+    enabled: false  # Disable to save resources
+  continuous:
+    enabled: false  # Disable to save resources
+
+# -------------------------------------------------------------------
+# Custom Configuration
+# -------------------------------------------------------------------
+custom:
+  # Environment name
+  env: production
+
+  # Cost tracking
+  costCenter: "data-science"
+
+# -------------------------------------------------------------------
+# RBAC
+# -------------------------------------------------------------------
+rbac:
+  create: true
+
+# -------------------------------------------------------------------
+# Debug Settings
+# -------------------------------------------------------------------
+debug:
+  enabled: false

@@ -87,19 +87,6 @@ Both platforms follow the same design:
 - **💾 Persistent**: User data persists across sessions
 - **🎯 Production-ready**: Tested configurations for production use
 
-## Cost Estimates
-
-### Azure (AKS)
-- **Minimal**: ~$70/month (hub pool only, no users)
-- **Typical**: ~$180/month (hub + avg 2 user nodes)
-- **Maximum**: Scales with usage
-
-### Google Cloud (GKE)
-- **Minimal**: ~$50/month (hub pool only, no users)
-- **Typical**: ~$193/month (hub + avg 2 user nodes)
-- **Maximum**: Scales with usage
-- **With preemptible nodes**: ~$100-120/month (typical usage)
-
 ## Project Structure
 
 ```
@@ -132,10 +119,6 @@ Both platforms follow the same design:
 - **Azure Issues**: See [azure/README.md](azure/)
 - **General Questions**: Create an issue
 - **Documentation**: Each platform has detailed README
-
-## Old Files
-
-Previous test files have been moved to the [archive/](archive/) directory.
 
 ## License
 
